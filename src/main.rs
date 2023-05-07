@@ -65,9 +65,9 @@ async fn main() {
   let shared_state = Arc::new(RwLock::new(Counter { counter: 0 }));
 
   let app = Router::new()
-    .route("/", get(root))
-    .route("/api/counter", get(|State(state): State<Arc<RwLock<Counter>>>| async { Html(empty_parent(counter(state)).to_string()) }))
-    .route("/counter", get(counter_page))
+    .route("/", get(|| async { Html(root().to_string()) }))
+    .route("/api/counter", get(|State(state): State<Arc<RwLock<Counter>>>| async move { Html(counter(&mut state.write().unwrap()).to_string()) }))
+    .route("/counter", get(|State(state): State<Arc<RwLock<Counter>>>| async move { Html(counter_page(&mut state.write().unwrap()).to_string()) }))
     .with_state(shared_state);
 
   let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -77,8 +77,8 @@ async fn main() {
     .unwrap();
 }
 
-async fn root() -> Html<String> {
-  Html(elem("html", "", vec![ ("lang", "en") ], vec![
+fn root() -> Element {
+  elem("html", "", vec![ ("lang", "en") ], vec![
     elem("head", "", vec![], vec![
       elem("meta", "", vec![ ("charset", "UTF-8") ], vec![]),
       elem("title", "Document", vec![], vec![]),
@@ -92,25 +92,25 @@ async fn root() -> Html<String> {
         elem("a", "counter", vec![ ("href", "/counter") ], vec![]),
       ],
     ),
-  ]).to_string())
+  ])
 }
 
-async fn counter_page(State(state): State<Arc<RwLock<Counter>>>) -> Html<String> {
-  Html(elem("html", "", vec![ ("lang", "en") ], vec![
+fn counter_page(state: &mut Counter) -> Element {
+  elem("html", "", vec![ ("lang", "en") ], vec![
     elem("head", "", vec![], vec![
       elem("title", "Counter", vec![], vec![]),
       elem("script", "", vec![ ("src", "https://unpkg.com/htmx.org@1.9.2") ], vec![]),
     ]),
     elem(
-      "body", "", vec![], counter(state),
+      "body", "", vec![], vec![counter(state)],
     ),
-  ]).to_string())
+  ])
 }
     
-fn counter(state: Arc<RwLock<Counter>>) -> Vec<Element> {
-  state.write().unwrap().counter += 1;
-  vec![
-    elem("p", &state.read().unwrap().counter.to_string(), vec![], vec![]),
+fn counter(state: &mut Counter) -> Element {
+  state.counter += 1;
+  empty_parent(vec![
+    elem("p", &state.counter.to_string(), vec![], vec![]),
     elem("button", "increment", vec![("hx-get", "/api/counter"), ("hx-target", "body"), ("hx-trigger", "click")], vec![])
-  ]
+  ])
 }
