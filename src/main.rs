@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use axum::{
+    response::Html,
     routing::get,
     Router,
 };
@@ -20,7 +21,6 @@ fn elem(name: String, content: String, attributes: Vec<String>, children: Vec<El
     }
 }
 
-// implement display for Element
 impl std::fmt::Display for Element {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut attributes = String::new();
@@ -32,7 +32,7 @@ impl std::fmt::Display for Element {
         for child in &self.children {
             children.push_str(&child.to_string());
         }
-        write!(f, "<{} {}>{}</{}>", self.name, attributes, children, self.name)
+        write!(f, "<{} {}>{}{}</{}>", self.name, attributes, self.content, children, self.name)
     }
 }
 
@@ -48,8 +48,8 @@ async fn main() {
         .unwrap();
 }
 
-async fn root() -> String {
-    elem(
+async fn root() -> Html<String> {
+    Html(elem(
         "html".to_string(),
         "".to_string(),
         vec![
@@ -100,5 +100,5 @@ async fn root() -> String {
                 ],
             ),
         ],
-    ).to_string()
+    ).to_string())
 }
